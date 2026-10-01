@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mi_primer_app/features/home/models/activity.dart';
-import 'package:mi_primer_app/features/home/widgets/interactive_activity_card.dart';
+import 'package:mi_primer_app/features/home/models/item.dart';
 import 'package:mi_primer_app/features/profile/screens/profile_screen.dart';
+import 'package:mi_primer_app/features/details/screens/detail_screen.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -11,63 +11,27 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> { 
-  List<Activity> activityList = [
-    Activity(
-      title: "Pasos Diarios",
-      subtitle: "", 
-      trailingText: "", 
-      icon: Icons.directions_walk, 
-      iconColor: Colors.black),
-    Activity(
-      title: "Natación",
-      subtitle: "", 
-      trailingText: "", 
-      icon: Icons.pool,
-      iconColor: Colors.black),
-    Activity(
-      title: "Rutina de Fuerza",
-      subtitle: "", 
-      trailingText: "", 
-      icon: Icons.fitness_center,
-      iconColor: Colors.black),
-    Activity(
-      title: "Sesión de Box",
-      subtitle: "", 
-      trailingText: "", 
-      icon: Icons.sports_mma,
-      iconColor: Colors.black),
-    Activity(
-      title: "Desayuno",
-      subtitle: "", 
-      trailingText: "", 
-      icon: Icons.free_breakfast,
-      iconColor: Colors.black),
-    Activity(
-      title: "Comida",
-      subtitle: "", 
-      trailingText: "", 
-      icon: Icons.restaurant,
-      iconColor: Colors.black),
+  List<Item> listaBacklog = [
+    Item(titulo: "The Witcher", categoria: "Serie", completado: false),
+    Item(titulo: "1984", categoria: "Libro físico", completado: true),
   ];
 
   @override
   Widget build(BuildContext context) {   
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: const Color.fromARGB(255, 233, 113, 237),
         foregroundColor: Colors.white,
-        title: Text("Panel de Actividad Física"),
+        title: const Text("Mis pendientes"),
         actions: [
-          // 1. botn en la barra superior
           IconButton(
             icon: const Icon(Icons.person),
             tooltip: 'Perfil de Usuario',
             onPressed: () {
-              // 2. nav hacia la pantalla de perfil
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
+                  builder: (context) => const ProfileScreen(), //pendiente: cambiar (oantalla perfil) a la tematica de los libros, series, etc
                 ),
               );
             },
@@ -76,15 +40,120 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-          padding: const EdgeInsets.all(8.0),
-          itemCount: activityList.length,
-          itemBuilder: (context, index){
-            final currentActivity = activityList[index];            
-            return InteractiveActivityCard(activity: currentActivity);
-          },
-        )
-      )
+        child: Column(
+          children: [
+            
+            Expanded(
+              child: ListView.builder(
+                itemCount: listaBacklog.length,
+                itemBuilder: (context, index) {
+                  final item = listaBacklog[index];
+
+                  return Dismissible(
+                    key: Key(item.titulo + index.toString()), 
+                    direction: DismissDirection.horizontal,
+                    onDismissed: (direction) {
+                      setState(() {
+                        listaBacklog.removeAt(index);
+                      });
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${item.titulo} eliminado correctamente')),
+                      );
+                    },
+                    child: Card(
+                      child: ListTile(
+                       title: Text(item.titulo),
+                       subtitle: Text(item.categoria),
+                       // trailing: Icon(item.completado ? Icons.check_box : Icons.check_box_outline_blank),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailScreen(item: item), 
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      // FloatingActionButton
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: () {
+          String categoriaSeleccionada = 'Videojuego'; 
+          TextEditingController tituloController = TextEditingController();
+
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return StatefulBuilder( 
+                builder: (context, setStateDialog) {
+                  return AlertDialog(
+                    title: const Text('Agregar nuevo elemento'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: tituloController,
+                          decoration: const InputDecoration(labelText: 'Título'),
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButton<String>(
+                          value: categoriaSeleccionada,
+                          isExpanded: true,
+                          items: ['Videojuego', 'Libro digital', 'Libro físico', 'Serie', 'Película'].map((String valor) {
+                            return DropdownMenuItem<String>(
+                              value: valor,
+                              child: Text(valor),
+                            );
+                          }).toList(),
+                          onChanged: (String? nuevoValor) {
+                            setStateDialog(() { 
+                              categoriaSeleccionada = nuevoValor!;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (tituloController.text.isNotEmpty) {
+                            setState(() { 
+                              listaBacklog.add(Item(
+                                titulo: tituloController.text,
+                                categoria: categoriaSeleccionada,
+                              ));
+                            });
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Elemento agregado correctamente')),
+                            );
+                            
+                            Navigator.pop(context); 
+                          }
+                        },
+                        child: const Text('Guardar'),
+                      ),
+                    ],
+                  );
+                }
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
